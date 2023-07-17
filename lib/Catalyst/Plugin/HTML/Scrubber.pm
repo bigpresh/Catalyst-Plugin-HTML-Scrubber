@@ -136,7 +136,9 @@ L<Catalyst>, L<HTML::Scrubber>.
 
 =head1 AUTHOR
 
-Hideo Kimura, E<lt>hide@hide-k.net<gt>
+Hideo Kimura, << <hide@hide-k.net> >> original author
+
+David Precious (BIGPRESH), C<< <davidp@preshweb.co.uk> >> maintainer since 2023-07-17
 
 =head1 COPYRIGHT AND LICENSE
 
