@@ -35,8 +35,14 @@ sub prepare_parameters {
     $c->maybe::next::method(@_);
 
     my $conf = $c->config->{scrubber};
+
+    # There are two ways to configure the plugin, it seems; giving a hashref
+    # of params under `scrubber`, with any params intended for HTML::Scrubber
+    # under the vaguely-named `params` key, or an arrayref of params intended
+    # to be passed straight to HTML::Scrubber - save html_scrub() from knowing
+    # about that by abstracting that nastyness away:
     if (ref $conf ne 'HASH' || $conf->{auto}) {
-        $c->html_scrub($conf || {});
+        $c->html_scrub(ref($conf) eq 'HASH' ? $conf : {});
     }
 }
 
