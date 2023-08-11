@@ -1,5 +1,4 @@
 package Catalyst::Plugin::HTML::Scrubber;
-
 use Moose;
 use namespace::autoclean;
 
@@ -47,33 +46,80 @@ sub prepare_parameters {
 sub html_scrub {
     my ($c, $conf) = @_;
 
-    param:
-    for my $param (keys %{ $c->request->{parameters} }) {
-        #while (my ($param, $value) = each %{ $c->request->{parameters} }) {
-        my $value = \$c->request->{parameters}{$param};
-        if (ref $$value && ref $$value ne 'ARRAY') {
-            next param;
-        }
-
-        # If we only want to operate on certain params, do that checking
-        # now...
-        if ($conf && $conf->{ignore_params}) {
-            my $ignore_params = $c->config->{scrubber}{ignore_params};
-            if (ref $ignore_params ne 'ARRAY') {
-                $ignore_params = [ $ignore_params ];
-            }
-            for my $ignore_param (@$ignore_params) {
-                if (ref $ignore_param eq 'Regexp') {
-                    next param if $param =~ $ignore_param;
-                } else {
-                    next param if $param eq $ignore_param;
-                }
-            }
-        } 
-
-        # If we're still here, we want to scrub this param's value.
-        $_ = $c->_scrubber->scrub($_) for (ref($$value) ? @{$$value} : $$value);
+    # If there's body_data - for e.g. a POSTed JSON body that was decoded -
+    # then we need to walk through it, scrubbing as appropriate
+    if (my $body_data = $c->request->body_data) {
+	$c->_scrub_recurse($conf, $c->request->body_data);
     }
+
+    # Normal query/POST body parameters:
+    $c->_scrub_recurse($conf, $c->request->parameters);
+
+}
+
+# Recursively scrub param values...
+sub _scrub_recurse {
+    my ($c, $conf, $data) = @_;
+
+    # If the thing we've got is a hashref, walk over its keys, checking
+    # whether we should ignore, otherwise, do the needful
+    if (ref $data eq 'HASH') {
+        for my $key (keys %$data) {
+            if (!$c->_should_scrub_param($conf, $key)) {
+                next;
+            }
+
+            # OK, it's fine to fettle with this key - if its value is
+            # a ref, recurse, otherwise, scrub
+            if (my $ref = ref $data->{$key}) {
+                $c->_scrub_recurse($conf, $data->{$key});
+            } else {
+                # Alright, non-ref value, so scrub it
+                # FIXME why did we have to have this ref-ref handling fun?
+                #$_ = $c->_scrubber->scrub($_) for (ref($$value) ? @{$$value} : $$value);
+                $data->{$key} = $c->_scrubber->scrub($data->{$key});
+            }
+        }
+    } elsif (ref $data eq 'ARRAY') {
+        # Simple - scrub all the values
+        $_ = $c->_scrubber->scrub($_) for @$data;
+        for (@$data) {
+            if (ref $_) {
+                $c->_scrub_recurse($conf, $_);
+            } else {
+                $_ = $c->_scrubber->scrub($_);
+            }
+        }
+    } elsif (ref $data eq 'CODE') {
+        $c->log->debug("Can't scrub a coderef!");
+    } else {
+        # This shouldn't happen, as we should always start with a ref,
+        # and non-ref hash/array values should have been handled above.
+        $c->log->debug("Non-ref to scrub - should this happen?");
+    }
+}
+
+sub _should_scrub_param {
+    my ($c, $conf, $param) = @_;
+    # If we only want to operate on certain params, do that checking
+    # now...
+    if ($conf && $conf->{ignore_params}) {
+        my $ignore_params = $c->config->{scrubber}{ignore_params};
+        if (ref $ignore_params ne 'ARRAY') {
+            $ignore_params = [ $ignore_params ];
+        }
+        for my $ignore_param (@$ignore_params) {
+            if (ref $ignore_param eq 'Regexp') {
+                return if $param =~ $ignore_param;
+            } else {
+                return if $param eq $ignore_param;
+            }
+        }
+    }
+
+    # If we've not bailed above, we didn't match any ignore_params
+    # entries, or didn't have any, so we do want to scrub
+    return 1; 
 }
 
 __PACKAGE__->meta->make_immutable;
