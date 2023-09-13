@@ -12,26 +12,26 @@ use Test::More;
 {
     my $req = GET('/');
     my ($res, $c) = ctx_request($req);
-    ok($res->code == RC_OK, 'response ok');
+    is($res->code, RC_OK, 'response ok');
     is($res->content, 'index', 'content ok');
 }
 {
     my $req = POST('/', [foo => 'bar']);
     my ($res, $c) = ctx_request($req);
-    ok($res->code == RC_OK, 'response ok');
+    is($res->code, RC_OK, 'response ok');
     is($c->req->param('foo'), 'bar', 'Normal POST body param, nothing to strip, left alone');
 }
 {
     my $req = POST('/', [foo => 'bar<script>alert("0");</script>']);
     my ($res, $c) = ctx_request($req);
-    ok($res->code == RC_OK, 'response ok');
+    is($res->code, RC_OK, 'response ok');
     is($c->req->param('foo'), 'bar', 'XSS stripped from normal POST body param');
 }
 {
     # we allow <b> in the test app config so this should not be stripped
     my $req = POST('/', [foo => '<b>bar</b>']);
     my ($res, $c) = ctx_request($req);
-    ok($res->code == RC_OK, 'response ok');
+    is($res->code, RC_OK, 'response ok');
     is($c->req->param('foo'), '<b>bar</b>', 'Allowed tag not stripped');
 }
 {
@@ -39,7 +39,7 @@ use Test::More;
     my $value = '<h1>Bar</h1><p>Foo</p>';
     my $req = POST('/', [foo_html => $value]);
     my ($res, $c) = ctx_request($req);
-    ok($res->code == RC_OK, 'response ok');
+    is($res->code, RC_OK, 'response ok');
     is(
         $c->req->param('foo_html'),
         $value,
@@ -50,8 +50,10 @@ use Test::More;
     diag "HTML left alone in ignored field - by name";
     my $value = '<h1>Bar</h1><p>Foo</p>';
     my $req = POST('/', [ignored_param => $value]);
+    diag "*** REQ: $req";
+    diag $req->as_string;
     my ($res, $c) = ctx_request($req);
-    ok($res->code == RC_OK, 'response ok');
+    is($res->code, RC_OK, 'response ok');
     is(
         $c->req->param('ignored_param'),
         $value,
@@ -78,7 +80,7 @@ JSON
         Content_Type => 'application/json', Content => $json_body
     );
     my ($res, $c) = ctx_request($req);
-    ok($res->code == RC_OK, 'response ok');
+    is($res->code, RC_OK, 'response ok');
     is(
         $c->req->body_data->{foo}, 
         'Top-level ', # note trailing space where img was removed
