@@ -26,7 +26,7 @@ sub setup {
     return $c->maybe::next::method(@_);
 }
 
-sub prepare_parameters {
+sub dispatch {
     my $c = shift;
 
     $c->maybe::next::method(@_);
@@ -50,6 +50,15 @@ sub html_scrub {
     # then we need to walk through it, scrubbing as appropriate
     if (my $body_data = $c->request->body_data) {
 	$c->_scrub_recurse($conf, $c->request->body_data);
+    }
+
+    # And if Catalyst::Controller::REST is in use so we have $req->data,
+    # then scrub that too
+    if ($c->request->can('data')) {
+        my $data = $c->request->data;
+        if ($data) {
+            $c->_scrub_recurse($conf, $c->request->data);
+        }
     }
 
     # Normal query/POST body parameters:
@@ -122,6 +131,27 @@ sub _should_scrub_param {
     return 1; 
 }
 
+
+# Incredibly nasty monkey-patch to rewind filehandle before parsing - see
+# https://github.com/perl-catalyst/catalyst-runtime/pull/186
+# First, get the default handlers hashref:
+my $default_data_handlers = Catalyst->default_data_handlers();
+
+# Wrap the coderef for application/json in one that rewinds the filehandle
+# first:
+my $orig_json_handler = $default_data_handlers->{'application/json'};
+$default_data_handlers->{'application/json'} = sub {
+    $_[0]->seek(0,0); # rewind $fh arg
+    $orig_json_handler->(@_);
+};
+
+# and now replace the original default_data_handlers() with a version that
+# returns our modified handlers
+*Catalyst::default_data_handlers = sub {
+    return $default_data_handlers;
+};
+
+
 __PACKAGE__->meta->make_immutable;
 
 1;
@@ -170,9 +200,11 @@ See SYNOPSIS for how to configure the plugin, both with its own configuration
 passing on any options from L<HTML::Scrubber> to control exactly what
 scrubbing happens.
 
-=item prepare_parameters
+=item dispatch
 
-Sanitize HTML tags in all parameters (unless `ignore_params` exempts them).
+Sanitize HTML tags in all parameters (unless `ignore_params` exempts them) -
+this includes normal POST params, and serialised data (e.g. a POSTed JSON body)
+accessed via `$c->req->body_data` or `$c->req->data`.
 
 =back
 
