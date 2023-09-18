@@ -145,12 +145,15 @@ $default_data_handlers->{'application/json'} = sub {
     $orig_json_handler->(@_);
 };
 
-# and now replace the original default_data_handlers() with a version that
-# returns our modified handlers
-*Catalyst::default_data_handlers = sub {
-    return $default_data_handlers;
-};
 
+{
+    # and now replace the original default_data_handlers() with a version that
+    # returns our modified handlers
+    no warnings 'redefine';
+    *Catalyst::default_data_handlers = sub {
+        return $default_data_handlers;
+    };
+}
 
 __PACKAGE__->meta->make_immutable;
 
