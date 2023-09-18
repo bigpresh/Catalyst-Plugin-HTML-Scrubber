@@ -26,7 +26,7 @@ sub setup {
     return $c->maybe::next::method(@_);
 }
 
-sub dispatch {
+sub execute {
     my $c = shift;
 
     $c->maybe::next::method(@_);
