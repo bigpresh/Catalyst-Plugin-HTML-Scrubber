@@ -1,4 +1,5 @@
 package Catalyst::Plugin::HTML::Scrubber;
+
 use Moose;
 use namespace::autoclean;
 
