@@ -50,8 +50,6 @@ use Test::More;
     diag "HTML left alone in ignored field - by name";
     my $value = '<h1>Bar</h1><p>Foo</p>';
     my $req = POST('/', [ignored_param => $value]);
-    diag "*** REQ: $req";
-    diag $req->as_string;
     my ($res, $c) = ctx_request($req);
     is($res->code, RC_OK, 'response ok');
     is(

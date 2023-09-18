@@ -32,7 +32,6 @@ JSON
     my $req = POST('/foo', 
         Content_Type => 'application/json', Content => $json_body
     );
-    diag("REQUEST: " . $req->as_string);
     my ($res, $c) = ctx_request($req);
     is($res->code, RC_OK, 'response ok');
     is(
