@@ -82,22 +82,22 @@ sub _scrub_recurse {
             # OK, it's fine to fettle with this key - if its value is
             # a ref, recurse, otherwise, scrub
             if (my $ref = ref $data->{$key}) {
-                $c->_scrub_recurse($conf, $data->{$key});
+                $c->_scrub_recurse($conf, $data->{$key})
+                    if defined $data->{$key};
             } else {
                 # Alright, non-ref value, so scrub it
                 # FIXME why did we have to have this ref-ref handling fun?
                 #$_ = $c->_scrubber->scrub($_) for (ref($$value) ? @{$$value} : $$value);
-                $data->{$key} = $c->_scrubber->scrub($data->{$key});
+                $data->{$key} = $c->_scrubber->scrub($data->{$key})
+                    if defined $data->{$key};
             }
         }
     } elsif (ref $data eq 'ARRAY') {
-        # Simple - scrub all the values
-        $_ = $c->_scrubber->scrub($_) for @$data;
         for (@$data) {
             if (ref $_) {
                 $c->_scrub_recurse($conf, $_);
             } else {
-                $_ = $c->_scrubber->scrub($_);
+                $_ = $c->_scrubber->scrub($_) if defined $_;
             }
         }
     } elsif (ref $data eq 'CODE') {
