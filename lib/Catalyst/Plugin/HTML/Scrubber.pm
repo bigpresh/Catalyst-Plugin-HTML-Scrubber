@@ -48,9 +48,13 @@ sub html_scrub {
     my ($c, $conf) = @_;
 
     # If there's body_data - for e.g. a POSTed JSON body that was decoded -
-    # then we need to walk through it, scrubbing as appropriate
-    if (my $body_data = $c->request->body_data) {
-	$c->_scrub_recurse($conf, $c->request->body_data);
+    # then we need to walk through it, scrubbing as appropriate; don't call
+    # body_data unless the content type is one there's a data handler for
+    # though, otherwise we'll trigger an exception (see GH#4)
+    if (exists $c->req->data_handlers->{ $c->req->content_type }) {
+        if (my $body_data = $c->request->body_data) {
+            $c->_scrub_recurse($conf, $c->request->body_data);
+        }
     }
 
     # And if Catalyst::Controller::REST is in use so we have $req->data,

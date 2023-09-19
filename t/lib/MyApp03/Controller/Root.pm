@@ -13,5 +13,10 @@ sub index : Path : Args(0) {
     $c->res->body('index');
 }
 
+sub upload : Local : Args(0) {
+    my ($self, $c) = @_;
+    $c->res->body("Uploaded file content: " . $c->req->upload('myfile')->slurp);
+}
+
 1;
 

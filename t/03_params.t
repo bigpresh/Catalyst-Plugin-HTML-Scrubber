@@ -101,5 +101,34 @@ JSON
     );
 }
 
+# multi-part file upload testing - ensure that an uploaded file's contents are
+# not fiddled with, and that we don't explode trying to process it 
+# (e.g. by calling $c->req->body_data causing an exception because there's
+# no data handler for this content type)
+{
+    my $content = "<p>File content, <b>with HTML</b> in it.</p>";
+    diag "Uploaded file left alone, but other form fields still scrubbed";
+    my $req = POST '/upload',
+     Content_Type => 'form-data',
+     Content      => [
+         foo  => 'Form field <script>window.alert("with XSS!");</script>',
+         myfile => [ 
+             undef, "fake.file", 'Content-Type' => 'text/fake', Content => $content
+         ],
+    ];
+    my ($res, $c) = ctx_request($req);
+    is($res->code, RC_OK, 'response ok');
+    is(
+        $c->req->param('foo'),
+        'Form field ',
+        'XSS still stripped from normal POST body param in multi-part upload',
+    );
+    is(
+        $c->req->upload('myfile')->slurp,
+        "<p>File content, <b>with HTML</b> in it.</p>",,
+        "File content left alone",
+    );
+
+}
 done_testing();
 
