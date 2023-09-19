@@ -1,6 +1,8 @@
 Revision history for Perl extension Catalyst::Plugin::HTML::Scrubber
 
 {{$NEXT}}
+
+0.04   2023-09-18
 - Recursively scrub parameters in encoded PUT/POST bodies (e.g. JSON)
 
 0.03   2023-07-17
