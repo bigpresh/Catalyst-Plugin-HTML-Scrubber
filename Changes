@@ -1,6 +1,7 @@
 Revision history for Perl extension Catalyst::Plugin::HTML::Scrubber
 
 {{$NEXT}}
+- Add no_encode_entities option to skip encoding HTML entities
 
 0.05   2023-09-19
 - Bugfixes for encoded body processing - GH#4

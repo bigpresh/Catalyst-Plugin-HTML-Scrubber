@@ -130,5 +130,29 @@ JSON
     );
 
 }
+{
+    my $req = POST('/', [foo => '>= 3']);
+    my ($res, $c) = ctx_request($req);
+    is($res->code, RC_OK, 'response ok');
+    is(
+        $c->req->param('foo'),
+        '&gt;= 3',
+        'HTML entities are encoded by default',
+    );
+
+    # Now flip on no_encode_entities and check that HTML entities are
+    # no longer encoded...
+    MyApp03->config->{scrubber}{no_encode_entities}++;
+    ($res, $c) = ctx_request($req);
+    is($res->code, RC_OK, 'response ok');
+    is(
+        $c->req->param('foo'), 
+        '>= 3',
+        'no_encode_entities works - no HTML entity encoding',
+    );
+}
+
+
+
 done_testing();
 
