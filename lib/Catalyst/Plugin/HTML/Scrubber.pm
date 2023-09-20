@@ -92,7 +92,7 @@ sub _scrub_recurse {
                 # Alright, non-ref value, so scrub it
                 # FIXME why did we have to have this ref-ref handling fun?
                 #$_ = $c->_scrubber->scrub($_) for (ref($$value) ? @{$$value} : $$value);
-                $data->{$key} = $c->_scrubber->scrub($data->{$key})
+                $data->{$key} = $c->_scrub_value($conf, $data->{$key})
                     if defined $data->{$key};
             }
         }
@@ -101,7 +101,7 @@ sub _scrub_recurse {
             if (ref $_) {
                 $c->_scrub_recurse($conf, $_);
             } else {
-                $_ = $c->_scrubber->scrub($_) if defined $_;
+                $_ = $c->_scrub_value($conf, $_) if defined $_;
             }
         }
     } elsif (ref $data eq 'CODE') {
@@ -111,6 +111,21 @@ sub _scrub_recurse {
         # and non-ref hash/array values should have been handled above.
         $c->log->debug("Non-ref to scrub - should this happen?");
     }
+}
+
+
+# Wrap HTML::Scrubber's scrub() so we can decode HTML entities if needed
+sub _scrub_value {
+    my ($c, $conf, $value) = @_;
+
+    return $value unless defined $value;
+    
+    $value = $c->_scrubber->scrub($value);
+
+    if ($conf->{no_encode_entities}) {
+        $value = HTML::Entities::decode_entities($value);
+    }
+    return $value;
 }
 
 sub _should_scrub_param {
@@ -178,6 +193,11 @@ Catalyst::Plugin::HTML::Scrubber - Catalyst plugin for scrubbing/sanitizing inco
         scrubber => {
             auto => 1,  # automatically run on request
             ignore_params => [ qr/_html$/, 'article_body' ],
+
+            # HTML::Scrubber will HTML-encode some chars, e.g. angle
+            # brackets.  If you don't want that, enable this setting and
+            # the scrubbed values will be unencoded.
+            no_decode_entities => 0,
             
             # The following are options to HTML::Scrubber
             params => [
