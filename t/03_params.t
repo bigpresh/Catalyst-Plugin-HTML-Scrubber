@@ -101,6 +101,32 @@ JSON
     );
 }
 
+{
+    diag "HTML left alone for ignored path exact match";
+    my $value = '<h1>Bar</h1><p>Foo</p>';
+    my $req = POST('/exempt_path_name', [ foo => $value]);
+    my ($res, $c) = ctx_request($req);
+    is($res->code, RC_OK, 'response ok');
+    is(
+        $c->req->param('foo'),
+        $value,
+        'HTML left alone for ignored path (by name)',
+    );
+}
+
+{
+    diag "HTML left alone for ignored path - regex match";
+    my $value = '<h1>Bar</h1><p>Foo</p>';
+    my $req = POST('/all_exempt/foo', [ foo => $value]);
+    my ($res, $c) = ctx_request($req);
+    is($res->code, RC_OK, 'response ok');
+    is(
+        $c->req->param('foo'),
+        $value,
+        'HTML left alone for ignored path (by regex match)',
+    );
+}
+
 # multi-part file upload testing - ensure that an uploaded file's contents are
 # not fiddled with, and that we don't explode trying to process it 
 # (e.g. by calling $c->req->body_data causing an exception because there's

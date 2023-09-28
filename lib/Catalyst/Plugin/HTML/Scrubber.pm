@@ -47,6 +47,10 @@ sub execute {
 sub html_scrub {
     my ($c, $conf) = @_;
 
+    # Firstly, if an entry in ignore_urls matches, then we don't want to
+    # scrub anything for this request...
+    return if ($c->_req_path_exempt_from_scrubbing($conf));
+
     # If there's body_data - for e.g. a POSTed JSON body that was decoded -
     # then we need to walk through it, scrubbing as appropriate; don't call
     # body_data unless the content type is one there's a data handler for
@@ -152,6 +156,21 @@ sub _should_scrub_param {
 }
 
 
+sub _req_path_exempt_from_scrubbing {
+    my ($c, $conf) = @_;
+    return unless exists $conf->{ignore_paths};
+
+    my $req_path = $c->req->path;
+    $req_path = "/$req_path" unless $req_path =~ m{^/};
+    for my $ignore (@{ $conf->{ignore_paths} }) {
+        if (ref $ignore eq 'Regexp') {
+            return 1 if $req_path =~ $ignore;
+        } else {
+            return 1 if $req_path eq $ignore;
+        }
+    }
+}
+
 # Incredibly nasty monkey-patch to rewind filehandle before parsing - see
 # https://github.com/perl-catalyst/catalyst-runtime/pull/186
 # First, get the default handlers hashref:
@@ -192,7 +211,15 @@ Catalyst::Plugin::HTML::Scrubber - Catalyst plugin for scrubbing/sanitizing inco
     MyApp->config( 
         scrubber => {
             auto => 1,  # automatically run on request
+
+            # Exempt certain parameter names from scrubbing
             ignore_params => [ qr/_html$/, 'article_body' ],
+
+            # Don't scrub at all for certain URL paths:
+            ignore_paths => [
+                '/foo',
+                qr{^/foo/.+},
+            ],
 
             # HTML::Scrubber will HTML-encode some chars, e.g. angle
             # brackets.  If you don't want that, enable this setting and
