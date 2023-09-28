@@ -15,6 +15,11 @@ __PACKAGE__->config(
 
         ignore_params => [ qr/_html$/, 'ignored_param' ],
 
+        ignore_paths => [
+            '/exempt_path_name',
+            qr{/all_exempt/.+},
+        ],
+
         # params for HTML::Scrubber
         params => [
             allow => [qw/br hr b/],
