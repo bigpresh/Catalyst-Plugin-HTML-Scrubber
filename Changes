@@ -1,6 +1,8 @@
 Revision history for Perl extension Catalyst::Plugin::HTML::Scrubber
 
 {{$NEXT}}
+
+0.08   2025-12-16
 - Support exempting from scrubbing by pattern match on value
   via new ignore_values option - PR #8 (bigpresh)
 
